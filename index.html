@@ -67,7 +67,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cool);outline-o
 </style>
 </head>
 <body>
-<div class="eyebrow">20.08 – 18.09.2026</div>
+<div class="eyebrow" id="zakres">19.08.2026 – dziś</div>
 <h1>Dzienniczek snu</h1>
 <div class="tabs" id="tabs"></div>
 <div id="app"></div>
@@ -75,7 +75,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cool);outline-o
 <script>
 "use strict";
 /* ---------- dane ---------- */
-var START="2026-08-20", DAYS=30;
+/* okno: od pierwszego wpisu do dziś (zmiana 04.10.2026; wcześniej stałe 30 dni od 20.08) */
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+var START="2026-08-19";
+var DAYS=Math.max(30,Math.round((new Date(isoLocal(new Date())+"T00:00:00")-new Date(START+"T00:00:00"))/864e5)+1);
 var DOW=["nd","pn","wt","śr","cz","pt","sb"];
 var DIST=[["a","Nie mogę zasnąć w ciągu 30 minut"],["b","Budzę się w środku nocy lub nad ranem"],
 ["c","Muszę wstać do toalety"],["d","Nie mogę swobodnie oddychać"],["e","Kaszlę lub głośno chrapię"],
@@ -84,7 +87,7 @@ var COMPN=["Subiektywna jakość snu","Latencja zasypiania","Długość snu","Ef
 "Zaburzenia snu","Leki nasenne","Funkcjonowanie w dzień"];
 var FREQ=["Ani razu","Rzadziej niż raz w tygodniu","Raz lub dwa razy w tygodniu","Trzy razy w tygodniu lub częściej"];
 
-function dISO(i){var d=new Date(START+"T00:00:00");d.setDate(d.getDate()+i);return d.toISOString().slice(0,10);}
+function dISO(i){var d=new Date(START+"T00:00:00");d.setDate(d.getDate()+i);return isoLocal(d);}
 var DATES=[];for(var i=0;i<DAYS;i++)DATES.push(dISO(i));
 
 function toMin(t){if(!t)return null;var p=t.split(":");return +p[0]*60+ +p[1];}
@@ -151,7 +154,7 @@ function scorePsqi(p){
 /* ---------- render ---------- */
 function render(){
   document.getElementById("tabs").innerHTML=
-    ['<button data-act="tab" data-v="dziennik" class="'+(S.tab==="dziennik"?"on":"")+'">30 dni</button>',
+    ['<button data-act="tab" data-v="dziennik" class="'+(S.tab==="dziennik"?"on":"")+'">Dziennik</button>',
      '<button data-act="tab" data-v="psqi" class="'+(S.tab==="psqi"?"on":"")+'">PSQI</button>'].join("");
   document.getElementById("app").innerHTML = S.tab==="dziennik"?viewDiary():viewPsqi();
 }
@@ -162,7 +165,7 @@ function viewStrip(){
     '<div style="display:flex;justify-content:space-between;padding:0 6px 9px">'+
     '<span class="lab" style="margin:0">Dzień</span>'+
     '<span class="mini num">'+n+' / '+DAYS+' wypełnionych</span></div><div class="strip">';
-  DATES.forEach(function(x){
+  DATES.slice().reverse().forEach(function(x){   /* najnowszy dzień pierwszy (04.10.2026) */
     var on=x===S.sel, done=filled(S.diary[x]);
     h+='<button class="day'+(done?" done":"")+(on?" on":"")+'" data-act="day" data-v="'+x+'">'+
       '<div class="d1">'+DOW[new Date(x+"T00:00:00").getDay()]+'</div>'+
@@ -241,7 +244,7 @@ function viewForm(){
 
 function viewTimeline(){
   var rows=DATES.map(function(x){var d=S.diary[x];return d?{x:x,d:d,c:calc(d)}:null;})
-    .filter(function(r){return r&&r.c;});
+    .filter(function(r){return r&&r.c;}).reverse();   /* najnowsza noc na górze (04.10.2026) */
   if(!rows.length)return '<div id="tl"></div>';
   var h='<div id="tl"><div class="card"><span class="lab">Przebieg nocy · 18:00 → 12:00</span><div class="tl">';
   [0,6,12,18].forEach(function(i){
@@ -469,7 +472,8 @@ function refreshLive(){
 
 /* ---------- start ---------- */
 load();
-var today=new Date().toISOString().slice(0,10);
+var today=isoLocal(new Date());
+try{document.getElementById("zakres").textContent=sh(DATES[0])+" – "+pl(DATES[DATES.length-1]);}catch(e){}
 S.sel=DATES.indexOf(today)>=0?today:DATES[0];
 render();
 </script>
